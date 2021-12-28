@@ -1,5 +1,3 @@
-
-
 # # (메타)기본전처리
 
 import pandas as pd
@@ -8,40 +6,10 @@ import seaborn as sns
 
 
 # +
-# 윈도우 : "Malgun Gothic"
-# 맥 : "AppleGothic"
-def get_font_family():
-    """
-    시스템 환경에 따른 기본 폰트명을 반환하는 함수
-    """
-    import platform
-    system_name = platform.system()
-
-    if system_name == "Darwin" :
-        font_family = "AppleGothic"
-    elif system_name == "Windows":
-        font_family = "Malgun Gothic"
-    else:
-        # Linux(colab)
-        # !apt-get install fonts-nanum -qq  > /dev/null
-        # !fc-cache -fv
-
-        import matplotlib as mpl
-        mpl.font_manager._rebuild()
-        findfont = mpl.font_manager.fontManager.findfont
-        mpl.font_manager.findfont = findfont
-        mpl.backends.backend_agg.findfont = findfont
-        
-        font_family = "NanumBarunGothic"
-    return font_family
-
-# 폰트설정
-plt.rc("font", family=get_font_family())
-# 마이너스폰트 설정
-plt.rc("axes", unicode_minus=False)
-# -
-
 df=pd.read_csv("metabus2_1226.csv")
+
+#1226일자로 메타버스 내의 '빠른토지구매' 크롤링한 데이터 
+# -
 
 df.isnull().sum()
 
@@ -49,14 +17,19 @@ df.info()
 
 df
 
+# +
 df.drop('isMyTile',axis=1,inplace=True)
 df.drop('lastPage',axis=1,inplace=True)
 df.drop('allSellOrdersCount',axis=1,inplace=True)
 df.drop(['createdAt','sellerId','currentPage','currentSellOrderCount','sellOrderId','uuid','sellerReferralCode'],axis=1,inplace=True)
 
-df
+#메타버스 크롤링 데이터 중 불필요한 데이터 삭제 
 
+# +
 df_meta_korea=df[df['address'].str.contains('Korea')==True]
+
+#뉴욕 제외하기 위한 작업
+# -
 
 df_meta_korea
 
@@ -64,7 +37,7 @@ df_meta_korea
 df_meta_korea['totalPrice']=df_meta_korea['totalPrice']/100*1200
 df_meta_korea['boughtPrice']=df_meta_korea['totalPrice']/100*1200
 
-#센트로 되어있는 Price 단위를->원으로 환산 
+#메타버스 크롤링 데이터에서, 센트로 되어있는 Price 단위를->원으로 환산 
 
 # +
 cols=['직전가TP_원','시장가TP_원','동','주소','위경도']
@@ -76,17 +49,17 @@ df_meta_korea.columns=cols
 
 df_meta_korea
 
+# +
 meta_gu_list=df_meta_korea['주소'].to_list()
 meta_gu_list
 
-# +
+#주소에서 '구 컬럼'을 새로 만들어주기 위한 작업   
+# -
+
 a=[]
 for i in range(len(meta_gu_list)):
     temp=meta_gu_list[i].split(' ')[3]
     a.append(temp)
-    
-#주소에서 '구 컬럼'을 새로 만들어주기 위한 작업    
-# -
 
 df_meta_korea['구']=a
 
@@ -98,15 +71,12 @@ df_meta_korea
 
 df_meta_korea['구'].unique()
 
-df_meta_korea.isnull().sum()
-
 meta_guprice=df_meta_korea.groupby(by='구')[['시장가TP_원']].sum()
 
-meta_guprice=meta_guprice.drop(['08505','08647','Anyang-si','Bucheon-si','Gimpo-si','Goyang-si','Guri-si','Gwacheon-si','Gwangmyeong-si','Gwangmyeong-si','York'])
-
-meta_guprice=meta_guprice.drop(['Hanam-si','Seongnam-si','Namyangju-si'])
+meta_guprice=meta_guprice.drop(['Hanam-si','Seongnam-si','Namyangju-si'.'08505','08647','Anyang-si','Bucheon-si','Gimpo-si','Goyang-si','Guri-si','Gwacheon-si','Gwangmyeong-si','Gwangmyeong-si','York'])
 
 meta_guprice.nunique()
+#서울특별시 구가 아닌 행을 삭세해주니 25개로 법정구 갯수가 맞음.
 
 meta_guprice
 
@@ -122,19 +92,18 @@ now_land_guprice=meta_guprice.loc[['Jung-gu','Yongsan-gu','Seongdong-gu','Songpa
 now_land_guprice
 
 index=['중구','용산구','성동구','송파구','종로구']
+#구 명을 한글로 바꿔주기
 
 now_land_guprice.index=index
 
-now_land_guprice.index
-
-
-# ## (메타) 확정 랜드마크 포함된 구 면적과 타일수 변환
+# ## (메타) 확정 랜드마크 포함된 구 지도면적과 타일수 변환
 
 # +
 #real_land_gusize
 # -
 
 real_price=pd.read_csv("finaldata/현실(구별)공시지가.csv")
+#부동산 사이트에 있는 현실 가액전처리해둔 것 이용 
 
 real_price2=real_price[['시도','면적']]
 
@@ -148,7 +117,7 @@ real_land_gusize['타일수변환']=real_land_gusize['면적']/2/100
 
 real_land_gusize.rename(columns={'시도':'구'})
 
-# ##  (메타) 랜드마크포함 구별 타일당 가격 구하기 최종
+# ##  (메타) 확정랜드마크포함 구별 타일당 가격 구하기 최종
 
 now_land_guprice.reset_index(inplace=True)
 
@@ -172,15 +141,12 @@ df_mr_nowland.rename(columns={'Unnamed: 0':'구'})
 
 meta_nowland_gu['산강제외_타일수']=meta_nowland_gu['타일수변환']-df_mr_nowland['타일수']
 
-meta_nowland_gu
-
 meta_nowland_gu['산강제외_시장가TP_원']=meta_nowland_gu['시장가TP_원']-df_mr_nowland['산강TP(won)']
 
 meta_nowland_gu['산강제외_타일당가격']=meta_nowland_gu['산강제외_시장가TP_원']/meta_nowland_gu['산강제외_타일수']
 
 meta_nowland_gu
-
-meta_nowland_gu
+#메타버스 내의 기본(아무것도 제외안함)타일수 및 시장가 & 산강제외 타일수 및 시장가 
 
 # # 산, 강, 랜드마크 제외한 구별 타일당 가격
 
@@ -190,6 +156,7 @@ meta_nowland_gu
 
 meta_landmark=pd.read_csv("finaldata/확정랜드마크_전처리.csv",encoding='cp949')
 meta_landmark
+#확정랜드마크 가격 및 타일수
 
 meta_landmark['랜드마크_타일당가격']=meta_landmark['TP_원']/meta_landmark['타일수']
 
@@ -204,18 +171,20 @@ meta_nowland_gu['산강랜드마크제외_타일당가격']=meta_nowland_gu['산
 meta_nowland_gu.rename(columns={'시도':'구'},inplace=True)
 
 meta_nowland_gu
+#메타버스 내의 기본(아무것도 제외안함)타일수 및 시장가 & 산강제외 타일수 및 시장가 & 산강랜드마크제외 타일수 및 시장가 
 
 # ## Y(영향력) 중 (1)번 비교 
 
 df_Y1=meta_nowland_gu[['구','타일당가격','산강제외_타일당가격','산강랜드마크제외_타일당가격']]
 
 df_Y1
+#영향력 중 1번 구하기 위한 데이터셋 정리 
 
 sns.barplot(data=df_Y1,x='구',y='산강제외_타일당가격')
 
 sns.barplot(data=df_Y1,x='구',y='산강랜드마크제외_타일당가격')
 
-# # (메타) 25개 구 대비 확정 랜드마크 5개 구 
+#  # (메타) 25개 구 대비 확정 랜드마크 5개 구 비교
 
 # +
 #meta_all_gu->메타버스 모든 구의 실제면적, 타일수와 가격 
@@ -229,15 +198,17 @@ meta_guprice['구']=구
 
 meta_guprice
 
-real_gusize
-
 real_gusize=pd.read_csv('finaldata/구별현실면적')
 
+real_gusize
+
 meta_all_gu=pd.merge(meta_guprice, real_gusize, how="left", left_on="구", right_on="시도")
+#메타버스의 구당 가격과 구의 타일수를 합쳐주기 위한 병합
 
 meta_all_gu=meta_all_gu.drop('시도',axis=1)
 
 meta_all_gu['타일수']=meta_all_gu['면적']/2/100
+#현실과 타일의 스케일 차이를 조정한 값
 
 meta_all_gu['타일당가격']=meta_all_gu['시장가TP_원']/meta_all_gu['타일수']
 
@@ -245,7 +216,7 @@ meta_all_gu.set_index('index')
 
 plt.figure(figsize=(30,6))
 sns.barplot(data=meta_all_gu,x='구',y='타일당가격')
-#아무것도제외하지 않은 메타버스 구 타일당가격
+#아무것도 제외하지 않은 메타버스 구 타일당가격
 
 df_Y1
 
@@ -280,6 +251,7 @@ test['타일당가격_x']=[1129.3362019933688,
  11130.847324]
 
 test
+#확정 랜드마크 포함한 5개구는 '타일당가격_x'에 산,강,메타버스가 제외된 값이 들어가 있음! 
 
 plt.figure(figsize=(30,6))
 plt.ylim([0,60000])
@@ -293,7 +265,7 @@ sns.barplot(data=test,x='구',y='타일당가격_x')
 
 # # (메타) 예상랜드마크 
 
-# ## (메타) 구별 전체 TP SUM
+# ## (메타) 예상랜드 포함한 구 시장가 TP SUM
 
 # +
 ## predict_land_guprice -> 예상 랜드마크를 포함한 구 가격 
@@ -305,18 +277,16 @@ meta_guprice=meta_guprice.set_index('구')
 predict_land_guprice=meta_guprice.loc[['중구','종로구','영등포구','동작구','서초구','강남구']]
 
 predict_land_guprice
+#예상 랜드마크를 포함한 구의 시장가 
 
 predict_landmark=pd.read_csv('finaldata/예상랜드마크_전처리.csv',encoding='cp949')
 
 predict_landmark
-
-meta_nowland_gu
+#예상랜드마크 가격 및 타일수
 
 real_predict_gu=real_price[(real_price['시도']=='강남구')|(real_price['시도']=='동작구')|(real_price['시도']=='서초구')|(real_price['시도']=='영등포구')|(real_price['시도']=='종로구')|(real_price['시도']=='중구')]
 
 real_predict_gu=real_predict_gu[['시도','면적']]
-
-real_predict_gu
 
 real_predict_gu['타일수변환']=real_predict_gu['면적']/2/100
 
@@ -324,9 +294,14 @@ real_predict_gu=real_predict_gu.rename(columns=({'시도':'구'}))
 
 real_predict_gu=real_predict_gu.sort_index()
 
+real_predict_gu
+#예상 랜드마크가 포함된 구의 실면적과 타일수변환
+
 meta_predict_gu=pd.concat([real_predict_gu,predict_land_guprice],axis=1)
 
 meta_predict_gu=meta_predict_gu.sort_index()
+
+meta_predict_gu
 
 mr_predict_land=pd.read_csv('finaldata/(예상랜드 구)산,강.csv',encoding='cp949')
 
@@ -357,6 +332,7 @@ meta_predict_gu['산강랜드마크제외_타일당가격']=meta_predict_gu['산
 # # 산,강 제외한 구별 예상랜드마크 타일당 가격
 
 meta_predict_gu
+##메타버스 내의 기본(아무것도 제외안함)타일수 및 시장가 & 산강제외 타일수 및 시장가 & 산,강,예상랜드마크제외 타일수 및 시장가 
 
 (predict_landmark['예상랜드TP_원']/meta_predict_gu['시장가TP_원'])*100
 
@@ -425,10 +401,10 @@ sns.barplot(data=meta_all_gu,x='구',y='타일당가격')
 plt.figure(figsize=(30,6))
 plt.ylim([0,80000])
 sns.barplot(data=test2,x='구',y='타일당가격_x')
-#예상핸드마크 6개 구에서 6개구만.산강랜드뺀거. 
+#예상랜드마크 6개 구에서 6개구만.산,강,랜드마크 뺀 값의 순위비교  
 
 # +
-#10퍼(예상랜드)가 빠졌는데, 단위면적당 순위 경향이 크게 많이 빠지지 않았다는 것은 애초에 주변시세 자체가 평균가격대가 있었다는 것. 
+#10퍼(예상랜드)가 빠졌는데, 단위면적당 순위 경향이 크게 많이 빠지지 않았다는 것은 애초에 주변시세 자체가 평균 가격대가 있었다는 것. 
 # -
 
 # # Y(영향력) 중 (3)번 비교 
