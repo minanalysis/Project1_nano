@@ -74,3 +74,16 @@ plt.ylim([0,80000])
 sns.barplot(data=test2,x='구',y='타일당가격_x')
 ##-> 예상 랜드마크를 포함한 구별 시장가 순위와 예상 랜드마크를 제외한 구별 시장가 순위 비교 
 
+## 추가 분석 : 확정 랜드마크 타일당 가격 대비 예상 랜드마크 타일 당 가격 
+
+meta_landmark  
+
+predict_landmark  
+
+a=meta_landmark['TP_원'].sum()/meta_landmark['타일수'].sum() 
+
+b=predict_landmark['예상랜드TP_원'].sum()/meta_landmark['타일수'].sum()
+
+a/b
+
+
