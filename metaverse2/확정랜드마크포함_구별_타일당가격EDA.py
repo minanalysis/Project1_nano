@@ -37,8 +37,6 @@ real_price2=real_price2.set_index('시도')
 
 real_land_gusize=real_price2.loc[['중구','용산구','성동구','송파구','종로구']]
 
-real_land_gusize.rename(columns={'시도':'구'}) 
-
 #현실 가액 전처리 데이터에서 필요한 데이터만을 추출하여 파생변수에 담아주기
 
 real_land_gusize['타일수변환']=real_land_gusize['면적']/2/100
